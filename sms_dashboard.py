@@ -104,19 +104,26 @@ def build_dashboard(sent, balance):
         stat["count"] += 1
         stat["cost"] += info["cost"] or 0
 
-    last_7_days = []
-    for offset in range(6, -1, -1):
-        day = (today - dt.timedelta(days=offset)).isoformat()
-        stat = by_day.get(day, {"count": 0, "cost": 0.0})
-        last_7_days.append({"date": day, "count": stat["count"], "cost": round(stat["cost"], 2)})
+    # Все дни от первой записи до сегодня, без пропусков
+    first_day = min(by_day, default=today.isoformat())
+    days = []
+    day = dt.date.fromisoformat(first_day)
+    while day <= today:
+        stat = by_day.get(day.isoformat(), {"count": 0, "cost": 0.0})
+        days.append({"date": day.isoformat(), "count": stat["count"], "cost": round(stat["cost"], 2)})
+        day += dt.timedelta(days=1)
 
     return {
         "updated_at": now_iso(),
         "balance": balance,
         "low_balance_threshold": LOW_BALANCE,
         "low_balance": balance < LOW_BALANCE,
-        "today": last_7_days[-1],
-        "last_7_days": last_7_days,
+        "today": days[-1],
+        "total": {
+            "count": sum(d["count"] for d in days),
+            "cost": round(sum(d["cost"] for d in days), 2),
+        },
+        "days": days,
         "pending_costs": sum(1 for info in sent.values() if info["cost"] is None),
     }
 

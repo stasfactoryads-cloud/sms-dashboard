@@ -98,9 +98,14 @@
       <div class="big" id="today-cost">—</div>
       <div class="sub">руб.</div>
     </div>
+    <div class="card">
+      <div class="label">Всего за все время</div>
+      <div class="big" id="total-count">—</div>
+      <div class="sub" id="total-cost"></div>
+    </div>
   </div>
 
-  <h2>Последние 7 дней</h2>
+  <h2>По дням</h2>
   <table>
     <thead>
       <tr><th>Дата</th><th class="num">SMS</th><th class="num">Сумма, руб.</th><th>Объем</th></tr>
@@ -134,11 +139,13 @@
 
     $("today-count").textContent = d.today.count;
     $("today-cost").textContent = money(d.today.cost);
+    $("total-count").textContent = d.total.count;
+    $("total-cost").textContent = "на " + money(d.total.cost) + " руб.";
 
     $("updated").textContent = "Обновлено: " + new Date(d.updated_at).toLocaleString("ru-RU");
 
-    const max = Math.max(1, ...d.last_7_days.map((x) => x.count));
-    $("days").innerHTML = d.last_7_days.slice().reverse().map((x) =>
+    const max = Math.max(1, ...d.days.map((x) => x.count));
+    $("days").innerHTML = d.days.slice().reverse().map((x) =>
       `<tr>
         <td>${dayLabel(x.date)}</td>
         <td class="num">${x.count}</td>
