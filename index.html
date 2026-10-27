@@ -105,6 +105,23 @@
     </div>
   </div>
 
+  <h2>Аккаунт</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Отправлено сегодня по данным sms.ru</div>
+      <div class="big" id="used-today">—</div>
+      <div class="sub" id="daily-limit"></div>
+    </div>
+    <div class="card">
+      <div class="label">Бесплатных SMS</div>
+      <div class="big" id="free-total">—</div>
+    </div>
+    <div class="card">
+      <div class="label">Номеров в стоп-листе</div>
+      <div class="big" id="stoplist-count">—</div>
+    </div>
+  </div>
+
   <h2>По дням</h2>
   <table>
     <thead>
@@ -141,6 +158,13 @@
     $("today-cost").textContent = money(d.today.cost);
     $("total-count").textContent = d.total.count;
     $("total-cost").textContent = "на " + money(d.total.cost) + " руб.";
+
+    const acc = d.account || {};
+    const orDash = (v) => (v === null || v === undefined ? "—" : v);
+    $("used-today").textContent = orDash(acc.used_today);
+    $("daily-limit").textContent = acc.daily_limit ? "из " + acc.daily_limit + " в день" : "";
+    $("free-total").textContent = orDash(acc.free_total);
+    $("stoplist-count").textContent = orDash(acc.stoplist_count);
 
     $("updated").textContent = "Обновлено: " + new Date(d.updated_at).toLocaleString("ru-RU");
 

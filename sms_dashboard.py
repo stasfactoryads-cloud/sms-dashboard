@@ -128,6 +128,22 @@ def build_dashboard(sent, balance):
     }
 
 
+def fetch_account():
+    """Лимит на сегодня, бесплатные SMS и количество номеров в стоп-листе."""
+    limit = api_post("my/limit")
+    free = api_post("my/free")
+    stoplist = api_post("stoplist/get")
+    for resp, method in ((limit, "my/limit"), (free, "my/free"), (stoplist, "stoplist/get")):
+        if resp.get("status") != "OK":
+            raise RuntimeError(f"{method}: код {resp.get('status_code')} {resp.get('status_text', '')}")
+    return {
+        "daily_limit": limit.get("total_limit"),
+        "used_today": limit.get("used_today"),
+        "free_total": free.get("total_free"),
+        "stoplist_count": sum(len(v) for v in stoplist.values() if isinstance(v, (list, dict))),
+    }
+
+
 def update():
     with update_lock:
         balance_resp = api_post("my/balance")
@@ -139,6 +155,7 @@ def update():
         save_json(SENT_FILE, sent)
 
         dashboard = build_dashboard(sent, float(balance_resp["balance"]))
+        dashboard["account"] = fetch_account()
         save_json(DASHBOARD_FILE, dashboard)
         today = dashboard["today"]
         print(f"Баланс {dashboard['balance']} руб. Сегодня: {today['count']} шт. на {today['cost']} руб.")
