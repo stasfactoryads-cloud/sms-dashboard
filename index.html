@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMS.RU: баланс и отправки</title>
+<style>
+  :root {
+    --text: #111;
+    --muted: #666;
+    --card: #fff;
+    --bg: #f4f5f7;
+    --line: #dcdfe4;
+    --ok: #1a7f37;
+    --warn: #c62828;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  main { max-width: 880px; margin: 0 auto; padding: 24px 16px 48px; }
+  header {
+    display: flex; flex-wrap: wrap; gap: 12px;
+    align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 28px 0 10px; }
+  .meta { color: var(--muted); font-size: 14px; }
+  button {
+    font: inherit; padding: 8px 14px; cursor: pointer;
+    border: 1px solid var(--text); border-radius: 6px;
+    background: var(--card); color: var(--text);
+  }
+  button:disabled { opacity: .5; cursor: wait; }
+  .alert {
+    display: none; margin-bottom: 16px; padding: 14px 16px;
+    border: 2px solid var(--warn); border-radius: 8px;
+    background: #fdecea; color: var(--warn); font-weight: 600;
+  }
+  .alert.show { display: block; }
+  .alert.error { border-color: var(--text); background: var(--card); color: var(--text); font-weight: 400; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 18px;
+  }
+  .label { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+  .big { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .big.ok { color: var(--ok); }
+  .big.low { color: var(--warn); }
+  .sub { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  th { color: var(--muted); font-weight: 600; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .bar { height: 8px; min-width: 80px; background: #e8ebf0; border-radius: 4px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--text); }
+  @media (max-width: 520px) {
+    th:nth-child(4), td:nth-child(4) { display: none; }
+    .big { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>SMS.RU: баланс и отправки</h1>
+      <div class="meta" id="updated">Загрузка...</div>
+    </div>
+    <button id="refresh" type="button">Обновить данные</button>
+  </header>
+
+  <div id="alert" class="alert">Баланс ниже 5000 руб. Пополните счет, иначе отправка SMS остановится.</div>
+  <div id="error" class="alert error"></div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">Баланс</div>
+      <div class="big" id="balance">—</div>
+      <div class="sub" id="threshold"></div>
+    </div>
+    <div class="card">
+      <div class="label">Отправлено сегодня</div>
+      <div class="big" id="today-count">—</div>
+      <div class="sub">сообщений</div>
+    </div>
+    <div class="card">
+      <div class="label">Сумма за сегодня</div>
+      <div class="big" id="today-cost">—</div>
+      <div class="sub">руб.</div>
+    </div>
+  </div>
+
+  <h2>Последние 7 дней</h2>
+  <table>
+    <thead>
+      <tr><th>Дата</th><th class="num">SMS</th><th class="num">Сумма, руб.</th><th>Объем</th></tr>
+    </thead>
+    <tbody id="days"></tbody>
+  </table>
+
+  <p class="meta" id="pending"></p>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const money = (n) => Number(n).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const dayLabel = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", weekday: "short" });
+
+  function showError(text) {
+    $("error").textContent = text;
+    $("error").classList.add("show");
+  }
+
+  function hideError() {
+    $("error").classList.remove("show");
+  }
+
+  function render(d) {
+    const low = d.low_balance;
+    $("balance").textContent = money(d.balance) + " руб.";
+    $("balance").className = "big " + (low ? "low" : "ok");
+    $("threshold").textContent = "Порог предупреждения: " + money(d.low_balance_threshold) + " руб.";
+    $("alert").classList.toggle("show", low);
+
+    $("today-count").textContent = d.today.count;
+    $("today-cost").textContent = money(d.today.cost);
+
+    $("updated").textContent = "Обновлено: " + new Date(d.updated_at).toLocaleString("ru-RU");
+
+    const max = Math.max(1, ...d.last_7_days.map((x) => x.count));
+    $("days").innerHTML = d.last_7_days.slice().reverse().map((x) =>
+      `<tr>
+        <td>${dayLabel(x.date)}</td>
+        <td class="num">${x.count}</td>
+        <td class="num">${money(x.cost)}</td>
+        <td><div class="bar"><span style="width:${(x.count / max) * 100}%"></span></div></td>
+      </tr>`
+    ).join("");
+
+    $("pending").textContent = d.pending_costs
+      ? "Стоимость пока не получена для " + d.pending_costs + " sms_id (появляется после отправки в сеть)."
+      : "";
+  }
+
+  async function loadData() {
+    const r = await fetch("/api/dashboard", { cache: "no-store" });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    render(d);
+  }
+
+  async function refresh() {
+    const btn = $("refresh");
+    btn.disabled = true;
+    try {
+      const r = await fetch("/api/refresh", { method: "POST" });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      render(d);
+      hideError();
+    } catch (e) {
+      showError("Не удалось обновить данные: " + e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  $("refresh").addEventListener("click", refresh);
+  loadData().catch((e) => {
+    $("updated").textContent = "Данные не загружены";
+    showError("Нет данных. Запустите сервер: python3 sms_dashboard.py serve. Причина: " + e.message);
+  });
+</script>
+</body>
+</html>
