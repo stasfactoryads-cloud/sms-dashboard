@@ -142,7 +142,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path in ("/", "/index.html"):
             self._reply(200, "text/html; charset=utf-8", (BASE / "index.html").read_bytes())
-        elif self.path == "/api/dashboard":
+        elif self.path in ("/api/dashboard", "/data/dashboard.json"):
             try:
                 self._json(200, load_json(DASHBOARD_FILE) or update())
             except RuntimeError as exc:

@@ -153,7 +153,7 @@
   }
 
   async function loadData() {
-    const r = await fetch("/api/dashboard", { cache: "no-store" });
+    const r = await fetch("data/dashboard.json", { cache: "no-store" });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
     render(d);
@@ -175,6 +175,10 @@
     }
   }
 
+  // Кнопка работает только при запуске локального сервера (serve), на GitHub Pages ее нет
+  if (!["127.0.0.1", "localhost"].includes(location.hostname)) {
+    $("refresh").hidden = true;
+  }
   $("refresh").addEventListener("click", refresh);
   loadData().catch((e) => {
     $("updated").textContent = "Данные не загружены";
