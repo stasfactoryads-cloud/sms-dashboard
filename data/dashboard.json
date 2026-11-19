@@ -1,10 +1,10 @@
 {
-  "updated_at": "2026-11-18T17:58:58+03:00",
-  "balance": 56590.31,
+  "updated_at": "2026-11-19T18:07:39+03:00",
+  "balance": 55758.43,
   "low_balance_threshold": 5000,
   "low_balance": false,
   "today": {
-    "date": "2026-11-18",
+    "date": "2026-11-19",
     "count": 0,
     "cost": 0.0
   },
@@ -14,7 +14,7 @@
   },
   "days": [
     {
-      "date": "2026-11-18",
+      "date": "2026-11-19",
       "count": 0,
       "cost": 0.0
     }
@@ -22,7 +22,7 @@
   "pending_costs": 0,
   "account": {
     "daily_limit": "9000",
-    "used_today": 8,
+    "used_today": "18",
     "free_total": 5,
     "stoplist_count": 0
   }
